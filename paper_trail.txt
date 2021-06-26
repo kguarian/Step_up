@@ -1,0 +1,5 @@
+Log:
+
+satisfied pyodide `make` installation prerequisites as per https://pyodide.org/en/stable/development/building-from-sources.html :
+    commands used:
+        pip install freetype-py

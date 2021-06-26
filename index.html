@@ -1,0 +1,75 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+  <!-- https://www.w3schools.com/html/html_css.asp -->
+  <link rel="stylesheet" href="someclass.css">
+  <meta charset="utf-8">
+  <script src="wasm_exec.js"></script>
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.17.0/full/pyodide.js"></script>
+  <script src="serverless_code.wasm"></script>
+
+  <!-- load Golang's Webassembly package -->
+  <script>
+    //https://www.sitepen.com/blog/compiling-go-to-webassembly 
+    if (WebAssembly) {
+      // WebAssembly.instantiateStreaming is not currently available in Safari
+      if (WebAssembly && !WebAssembly.instantiateStreaming) { // polyfill
+        WebAssembly.instantiateStreaming = async (resp, importObject) => {
+          const source = await (await resp).arrayBuffer();
+          return await WebAssembly.instantiate(source, importObject);
+        };
+      }
+
+      const go = new Go();
+      WebAssembly.instantiateStreaming(fetch("go_helpercode.wasm"), go.importObject).then(async (result) => {
+        go.run(result.instance);
+        var oldlog;
+  
+        oldlog = console.log;
+        console.log=pyodidelog_write;
+        await loadPyodide({ indexURL: "https://cdn.jsdelivr.net/pyodide/v0.17.0/full/" });
+        console.log=oldlog;
+      });
+    } else {
+      console.log("WebAssembly is not supported in your browser. Please use another browser.")
+    }
+
+  </script>
+
+  <!--application functions-->
+  <script>
+    async function pyfunc() {
+      var pycode;
+      var edited_pythoncode;
+      var stdout;
+
+
+      pycode = document.getElementById("codespace").value;
+      //golang handle imports
+      //go_handle_pyodide_imports(pycode);
+
+      await pyodide.runPythonAsync(document.getElementById("codespace").value, console.log);
+      //https://stackoverflow.com/questions/56583696/how-to-redirect-render-pyodide-output-in-browser
+      //and
+      //https://stackoverflow.com/questions/43438303/how-to-read-print-the-io-textiowrapper-data
+
+      stdout = pyodidelog_readall();
+
+      for (var i = 0; i < stdout.length; i++) {
+        document.getElementById("program_output").value += stdout[i];
+      }
+    };
+  </script>
+
+</head>
+
+<body>
+  <h1>Python Code</h1>
+  <textarea cols="80" rows="10" id="codespace"></textarea>
+  <input type="button" id="run_code" onclick="pyfunc()" value="Run!">
+  <br>
+  <h2>Program Output</h2>
+  <textarea cols="80" rows="15" id="program_output"></textarea>
+</body>
