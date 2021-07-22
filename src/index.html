@@ -1,78 +1,135 @@
 <!doctype html>
 
 <html lang="en">
+<script>
+  var go_loaded0 = false;
+  var go_loaded1 = false;
+  var pyodide_loaded = false;
+</script>
+
+<script>
+  function pyodide_load() {
+    console.log("pyodide loaded");
+    pyodide_loaded = true;
+  }
+
+  function wasm_load0() {
+    console.log("wasm_exec.js loaded");
+    go_loaded0 = true;
+  }
+
+  function wasm_load1() {
+    console.log("go_helpercode.wasm loaded");
+    go_loaded1 = true;
+  }
+</script>
+
+<script language="JavaScript" onload="wasm_load0()" type="text/javascript" src="wasm_exec.js" />
+</script>
+<script language="WebAssembly" onload="wasm_load1()" type="application/wasm" src="go_helpercode.wasm" />
+</script>
+<script language="JavaScript" onload="pyodide_load()" type="text/javascript"
+  src="https://cdn.jsdelivr.net/pyodide/v0.17.0/full/pyodide.js" />
+</script>
 
 <head>
-  <!-- https://www.w3schools.com/html/html_css.asp -->
-  <link rel="stylesheet" href="someclass.css">
-  <meta charset="utf-8">
-  <script src="https://cdn.jsdelivr.net/pyodide/v0.17.0/full/pyodide.js"></script>
+  <meta charset="utf-8" />
+
   <script>
-    const setup_pyodide = () => {
-      const setup_code = `
-    import sys, io, traceback
-    
-    namespace = {}  # use separate namespace to hide run_code, modules, etc.
-    def run_code(code):
-      """run specified code and return stdout and stderr"""
-      out, err = io.StringIO(), io.StringIO()
-      oldout, olderr = sys.stdout, sys.stderr
-      sys.stdout, sys.stderr = out, err
-      try:
-        # change next line to exec(code, {}) if you want to clear vars each time
-        exec(code, namespace)
-      except:
-        traceback.print_exc()
-      
-      sys.stdout = oldout
-      sys.stderr = olderr
-      return [out.getvalue(), err.getvalue()]
-    `;
-      pyodide.runPython(setup_code);
-    }
-    const pyodide_log = (...args) => {
-      const output = document.getElementById('pyodide_code_output');
-      output.value = `${output.value}${args.join('')}\n`;
-    }
-    (async () => {
-      loadPyodide({ indexURL: "https://cdn.jsdelivr.net/pyodide/v0.17.0/full/" }).then(() => {
-        setup_pyodide();
-      });
-    })();
-    
-    async function run_python_code() {
-      const code_input = document.getElementById('codespace').value;
-      pyodide.globals.set('PYODIDE_CODE_INPUT', code_input);
-      await pyodide.loadPackagesFromImports(code_input);
-      const [output, error] = pyodide.runPython(`run_code(PYODIDE_CODE_INPUT)`);
-      document.getElementById('program_output').value += `stdout: ${output}\nstderr: ${error}\n`;
-    };
-  </script>
+    async function runCode() {
+      var goOutput;
+      var userProgramOutput;
+      var OutputBox;
+      var refCode;
 
-  <!--application functions-->
-  <script>
-    async function pyfunc() {
-      var pycode;
-        var edited_pythoncode;
-        var stdout;
+      userProgramOutput = ""
+      referenceProgramOutput = ""
 
-
-      pycode = document.getElementById("codespace").value;
-      await pyodide.runPythonAsync(document.getElementById("codespace").value, console.log)
-
-      for (var i = 0; i < stdout.length; i++) {
-        document.getElementById("program_output").value += stdout[i];
+      OutputBox = document.getElementById("program_output");
+      await pyodide.runPythonAsync(document.getElementById("codespace").value);
+      OutputBox.value += "Output:\n";
+      while (GoOutLength() > 0) {
+        goOutput = GoOutRead()
+        console.log(GoOutRead);
+        OutputBox.value += goOutput;
+        userProgramOutput += goOutput;
       }
-    };
-  </script>
+      OutputBox.value += "Error:\n";
+      while (GoErrLength() > 0) {
+        OutputBox.value += GoErrRead();
+      }
+      console.log("---done executing user-submitted code.---");
+      refCode=GoGetRefCode();
 
+    }
+
+    function fetchChallenge() {
+      var challenge_id;
+
+      id = document.getElementById("challenge_name").value;
+      Go_ParseJson(id);
+
+      while (GoErrLength() > 0) {
+        console.log(GoErrRead());
+      }
+      while (GoOutLength() > 0) {
+        console.log(GoOutRead());
+      }
+    }
+  </script>
 </head>
 
 <body>
+
+  <script>
+    var loadPyodide;
+    var Go_ParseJson;
+
+    go = new Go();
+    (async () => {
+      await WebAssembly.instantiateStreaming(fetch('go_helpercode.wasm'), go.importObject)
+        .then(
+          function (res) {
+            go.run(res.instance);
+            console.log("Loaded contents of go_helpercode.wasm");
+          }
+        );
+      (async () => {
+        //wait for pyodide to fetch resources
+        while (typeof loadPyodide === 'undefined' || typeof Go_ParseJson === 'undefined') {
+          console.log("waiting")
+          //https://stackoverflow.com/questions/951021/what-is-the-javascript-version-of-sleep
+          await new Promise(r => setTimeout(r, 100));
+        }
+
+        console.log("Preparing function switch");
+        Use_Before_Py();
+
+        await loadPyodide({ indexURL: "https://cdn.jsdelivr.net/pyodide/v0.17.0/full/" });
+        // Pyodide is now ready to use...
+        console.log(pyodide.runPython(`
+  import sys
+  `));
+
+        Use_After_Py();
+        console.log("done initializing. Go and Pyodide should work now");
+
+        document.getElementById("run_code").disabled = false;
+        document.getElementById("challenge_name_button").disabled = false;
+      })();
+    })();
+
+  </script>
+
+
+  <h3 id="instructions" value="no challenge loaded"></h3>
   <h1>Python Code</h1>
   <textarea cols="80" rows="10" id="codespace"></textarea>
-  <input type="button" id="run_code" onclick="run_python_code()" value="Run!">
+  <input type="button" id="run_code" onclick="runCode()" value="Run!" disabled="true">
   <br>
   <h2>Program Output</h2>
   <textarea cols="80" rows="15" id="program_output"></textarea>
+  <h2>Development Tools</h2>
+  Challenge name: <input type="text" id="challenge_name" value="input steply challenge name">
+  <input type="button" id="challenge_name_button" onclick="fetchChallenge()" value="fetch_challenge" disabled="true" />
 </body>
