@@ -1,3 +1,7 @@
 #!/usr/bin/bash
 
-sudo cp index.html style.css wasm_exec.js go_helpercode.wasm /var/www/html/steply
+cd go_tooling
+GOOS=js GOARCH=wasm go build -o ../lib/go_helpercode.wasm steply
+cd ../
+
+sudo cp -r lib index.html /var/www/html/steply

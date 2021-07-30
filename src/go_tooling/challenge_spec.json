@@ -1,0 +1,61 @@
+{
+    "block": {
+        "name": "code",
+        "text": "<p>As mentioned before, since we are learning about data structures and thus want to place an emphasis on speed, everything in this text will be done in C++. If you are already comfortable with C++, you don't need much preparation, if any, language-wise. However, if you are <em>not</em> already comfortable with C++, this text assumes that you are at least comfortable with Java. As such, this section highlights the key differences one would need to know to transition from Java to C++. First, just to refresh basic syntax tasks, solve the simple challenge below.</p>\n\n<p><strong><span style=\"color: #66cc66;\">CODE CHALLENGE:</span></strong> <strong>Basic Syntax Refresher</strong></p>\n\n<p>Given a positive integer <em>n</em>, return the sum of the integers from 1 to <em>n</em> (inclusive) as an integer.</p>\n\n<p><strong><span style=\"color: #ff4363;\">﻿Hint:</span></strong> Even though your solution will technically be in C++, the syntax for this challenge will be 100% identical to Java.</p>",
+        "video": null,
+        "options": {
+            "execution_time_limit": 5,
+            "execution_memory_limit": 256,
+            "limits": {
+                "c++11": {
+                    "time": 5,
+                    "memory": 256
+                },
+                "python3": {
+                    "time": 15,
+                    "memory": 256
+                }
+            },
+            "code_templates": {
+                "c++11": "int addNums(int n) {\n    // YOUR CODE HERE\n}",
+                "python3": "def addNums(n):\n    # YOUR CODE HERE"
+            },
+            "code_templates_options": {},
+            "samples": [
+                [
+                    "10",
+                    "55"
+                ]
+            ],
+            "is_run_user_code_allowed": true,
+            "code_templates_header_lines_count": {
+                "c++11": 2,
+                "python3": 0
+            },
+            "code_templates_footer_lines_count": {
+                "c++11": 6,
+                "python3": 2
+            }
+        },
+        "subtitle_files": [],
+        "source": {
+            "execution_time_limit": 5,
+            "is_memory_limit_scaled": true,
+            "test_archive": [],
+            "manual_memory_limits": [],
+            "manual_time_limits": [],
+            "code": "import random\n\ndef generate():\n    num_tests = 10\n    tests = [('10',('10',solve('10')))]\n    for test in range(num_tests):\n        n = str(random.randint(0,1000))\n        tests.append((n,(n,solve(n))))\n    return tests\n\n\ndef solve(dataset):\n    return str(sum(range(1,int(dataset)+1)))\n\n\ndef check(reply, clue):\n    test = clue[0]\n    clue = clue[1]\n    if int(reply.strip()) == int(clue.strip()):\n        return 1\n    else:\n        return 0#, \"Wrong answer\\n\\nInput:\\n\" + clue + \"\\n\\nYour output:\\n\" + reply + \"\\n\\nCorrect output:\\n\" + clue",
+            "execution_memory_limit": 256,
+            "is_time_limit_scaled": true,
+            "templates_data": "::c++11\n::header\n#include <iostream>\nusing namespace std;\n\n::code\nint addNums(int n) {\n    // YOUR CODE HERE\n}\n\n::footer\nint main() {\n    int n;\n    cin >> n;\n    cout << addNums(n);\n    return 0;\n}\n\n::python3\n::header\n::code\ndef addNums(n):\n    # YOUR CODE HERE\n::footer\nfrom sys import stdin\nprint(addNums(int(stdin.read())))",
+            "samples_count": 1
+        },
+        "subtitles": {},
+        "tests_archive": "/api/step-sources/95882/tests",
+        "feedback_correct": "",
+        "feedback_wrong": ""
+    },
+    "id": "95882",
+    "has_review": false,
+    "time": "2021-06-23T17:18:48.279Z"
+}

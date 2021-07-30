@@ -1,13 +1,34 @@
 <!doctype html>
 
 <html lang="en">
+
+<link rel="stylesheet" href="./lib/style.css">
+<link rel="stylesheet" href="./lib/CodeMirror/codemirror.css">
+<link rel="stylesheet" href="./lib/CodeMirror/eclipse.css">
+<link rel="stylesheet" href="./lib/CodeMirror/gruvbox-dark.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap">
+
+<script src="./lib/CodeMirror/codemirror.js"></script>
+<script src="./lib/CodeMirror/python.js"></script>
+
 <script>
+  const default_theme = "gruvbox-dark";
+  const dark_theme = "gruvbox-dark";
+  const light_theme = "eclipse";
+
+  var codemirror_code_input;
+  var codemirror_output;
+  var python_codemirrors;
+
+  var goOutput;
+  var userProgramOutput;
+  var refCode;
+  var OutputBox;
+  var jsonField;
   var go_loaded0 = false;
   var go_loaded1 = false;
   var pyodide_loaded = false;
-</script>
 
-<script>
   function pyodide_load() {
     console.log("pyodide loaded");
     pyodide_loaded = true;
@@ -22,52 +43,121 @@
     console.log("go_helpercode.wasm loaded");
     go_loaded1 = true;
   }
-</script>
 
-<script language="JavaScript" onload="wasm_load0()" type="text/javascript" src="wasm_exec.js" />
-</script>
-<script language="WebAssembly" onload="wasm_load1()" type="application/wasm" src="go_helpercode.wasm" />
-</script>
-<script language="JavaScript" onload="pyodide_load()" type="text/javascript"
-  src="https://cdn.jsdelivr.net/pyodide/v0.17.0/full/pyodide.js" />
+  function errorCallback() {
+    console.log("grievous error");
+  }
+
+  function messageCallback() {
+    console.log("success");
+  }
+
+  function set_CodeMirror_theme(theme_selection) {
+    codemirror_code_input.setOption("theme", theme_selection);
+    codemirror_output.setOption("theme", theme_selection)
+  }
+
+  function change_theme() {
+
+    var theme_selection = document.getElementById("theme_selection").value;
+
+
+    switch (theme_selection) {
+      case "light":
+        set_CodeMirror_theme(light_theme);
+        break;
+      case "dark":
+        set_CodeMirror_theme(dark_theme);
+        break;
+      default:
+        set_CodeMirror_theme(default_theme);
+        break;
+    };
+    return
+  }
+
+  function configure_CodeMirror() {
+    var input;
+    var output;
+    var theme_selection;
+
+    theme_selection = document.getElementById("theme_selection").value;
+
+  }
+
+  document.addEventListener("DOMContentLoaded", function (event) {
+
+    codemirror_code_input = CodeMirror.fromTextArea(document.getElementById("codespace"), {
+      lineNumbers: true,
+      theme: dark_theme,
+      mode: "python"
+    });
+
+    codemirror_output = CodeMirror.fromTextArea(document.getElementById("program_output"), {
+      lineNumbers: true,
+      theme: dark_theme,
+      mode: "htmlmixed"
+    });
+  })
 </script>
 
 <head>
   <meta charset="utf-8" />
 
+
+</head>
+
+<body>
+
+
+  <script language="JavaScript" onload="wasm_load0()" type="text/javascript" src="./lib/wasm_exec.js" />
+  </script>
+  <script language="WebAssembly" onload="wasm_load1()" type="application/wasm" src="./lib/go_helpercode.wasm" />
+  </script>
+  <script language="JavaScript" onload="pyodide_load()" type="text/javascript"
+    src="https://cdn.jsdelivr.net/pyodide/v0.17.0/full/pyodide.js" />
+  </script>
+
   <script>
-    async function runCode() {
-      var goOutput;
-      var userProgramOutput;
-      var OutputBox;
-      var refCode;
+    function runCode() {
+      (async () => {
+        jsonField = document.getElementById("info_field");
+        OutputBox = document.getElementById("program_output");
 
-      userProgramOutput = ""
-      referenceProgramOutput = ""
-
-      OutputBox = document.getElementById("program_output");
-      await pyodide.runPythonAsync(document.getElementById("codespace").value);
-      OutputBox.value += "Output:\n";
-      while (GoOutLength() > 0) {
-        goOutput = GoOutRead()
-        console.log(GoOutRead);
-        OutputBox.value += goOutput;
-        userProgramOutput += goOutput;
-      }
-      OutputBox.value += "Error:\n";
-      while (GoErrLength() > 0) {
-        OutputBox.value += GoErrRead();
-      }
-      console.log("---done executing user-submitted code.---");
-      refCode=GoGetRefCode();
-
+        jsonField.innerHTML = "";
+        if (GoOutLength() > 0) {
+          console.log("The following text is a JSON encoding");
+        }
+        while (GoOutLength() > 0) {
+          goOutput = GoOutRead();
+          console.log(goOutput);
+          jsonField.innerText += goOutput;
+        }
+        console.log("If a recent message didn't mention JSON text, then no page is loaded");
+        console.log(codemirror_code_input.getValue());
+        await pyodide.runPythonAsync(codemirror_code_input.getValue(), messageCallback, errorCallback);
+        OutputBox.value += "stdout:\n";
+        while (GoOutLength() > 0) {
+          goOutput = GoOutRead();
+          console.log(goOutput);
+          OutputBox.value += goOutput;
+          userProgramOutput += goOutput;
+        }
+        OutputBox.value += "stderr:\n";
+        while (GoErrLength() > 0) {
+          OutputBox.value += GoErrRead();
+        }
+        console.log("---done executing user-submitted code.---");
+        jsonField.value = "";
+        retcode = GradeChallenge();
+      })()
     }
 
     function fetchChallenge() {
       var challenge_id;
 
       id = document.getElementById("challenge_name").value;
-      Go_ParseJson(id);
+      FetchJson(id);
 
       while (GoErrLength() > 0) {
         console.log(GoErrRead());
@@ -76,18 +166,13 @@
         console.log(GoOutRead());
       }
     }
-  </script>
-</head>
 
-<body>
-
-  <script>
     var loadPyodide;
-    var Go_ParseJson;
+    var FetchJson;
 
     go = new Go();
     (async () => {
-      await WebAssembly.instantiateStreaming(fetch('go_helpercode.wasm'), go.importObject)
+      await WebAssembly.instantiateStreaming(fetch('./lib/go_helpercode.wasm'), go.importObject)
         .then(
           function (res) {
             go.run(res.instance);
@@ -96,7 +181,7 @@
         );
       (async () => {
         //wait for pyodide to fetch resources
-        while (typeof loadPyodide === 'undefined' || typeof Go_ParseJson === 'undefined') {
+        while (typeof loadPyodide === 'undefined' || typeof FetchJson === 'undefined') {
           console.log("waiting")
           //https://stackoverflow.com/questions/951021/what-is-the-javascript-version-of-sleep
           await new Promise(r => setTimeout(r, 100));
@@ -108,28 +193,107 @@
         await loadPyodide({ indexURL: "https://cdn.jsdelivr.net/pyodide/v0.17.0/full/" });
         // Pyodide is now ready to use...
         console.log(pyodide.runPython(`
-  import sys
-  `));
+    import sys
+    `));
 
         Use_After_Py();
         console.log("done initializing. Go and Pyodide should work now");
 
-        document.getElementById("run_code").disabled = false;
+        document.getElementById("btn_submit_code").disabled = false;
         document.getElementById("challenge_name_button").disabled = false;
       })();
     })();
 
+    function GradeChallenge() {
+      var student_response = codemirror_code_input.value;
+      var reference_code = GoGetRefCode();
+      var exit_code;
+
+      console.log(reference_code);
+      while (GoOutLength() > 0) {
+        GoOutRead();
+      }
+
+      console.log(student_response);
+      pyodide.runPython(reference_code);
+      pyodide.runPython(`
+tests=generate()
+
+last_val, last_sol=None, None
+exit_code="invalid"
+
+for i in range(len(tests)):
+  currtest=tests[i]
+  reply=str(solution(currtest[1][0]))
+  value_pair=currtest[1]
+  last_val=reply
+  last_sol=value_pair
+  exit_code = check(reply, value_pair)
+
+  print(last_val, last_sol)
+
+  if exit_code == 0:
+    break
+  if i==len(tests)-1:
+    print(str(1))
+    break
+
+print(str(tests))
+print(str(exit_code))
+`
+      );
+      while (GoOutLength() > 1) {
+        console.log(GoOutRead());
+      }
+      exit_code = GoOutRead();
+      if (exit_code == "0\n") {
+        jsonField.innerHTML = "challenge failed.";
+      } else if (exit_code == "1\n") {
+        jsonField.innerHTML = "challenge passed";
+      } else {
+        jsonField.innerHTML = "invalid exit code.";
+        console.log("invalide exit code:", exit_code);
+      }
+      console.log(exit_code);
+      return exit_code;
+    }
+
   </script>
 
+  <div>
+    <div class="instructions">
+      <h3 id="instructions" value="no challenge loaded"></h3>
+    </div>
+    <div class="user_tools">
+      <h1>Python Code: Entry function "solution(...parameters)"
+      </h1><select name="color_mode" id="theme_selection" onchange="change_theme()">
+        <option value="dark" selected="true">Dark</option>
+        <option value="light">Light</option>
+      </select>
 
-  <h3 id="instructions" value="no challenge loaded"></h3>
-  <h1>Python Code</h1>
-  <textarea cols="80" rows="10" id="codespace"></textarea>
-  <input type="button" id="run_code" onclick="runCode()" value="Run!" disabled="true">
-  <br>
-  <h2>Program Output</h2>
-  <textarea cols="80" rows="15" id="program_output"></textarea>
-  <h2>Development Tools</h2>
-  Challenge name: <input type="text" id="challenge_name" value="input steply challenge name">
-  <input type="button" id="challenge_name_button" onclick="fetchChallenge()" value="fetch_challenge" disabled="true" />
+      <textarea cols="80" rows="10" id="codespace">
+#solution here:
+
+def solution(n):
+  n=int(n)
+  sum=0
+  #unoptimized
+  for i in range(n+1):
+    sum+=i
+  return sum
+      </textarea>
+
+      <input type="button" id="btn_submit_code" onclick="runCode()" value="Run!" disabled="true">
+      <br>
+      <h2>Program Output</h2>
+      <textarea cols="80" rows="15" id="program_output"></textarea>
+    </div>
+    <div class="dev_tools">
+      <h1>Development Tools</h1>
+      Challenge name: <input type="text" id="challenge_name" value="https://192.168.1.118/steply/challenge_spec.json">
+      <input type="button" id="challenge_name_button" onclick="fetchChallenge()" value="fetch_challenge"
+        disabled="true"></input>
+      <h3 id="info_field"></h3>
+    </div>
+  </div>
 </body>

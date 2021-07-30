@@ -1,0 +1,16 @@
+.instructions {
+    color: #16161d;
+    font-size: small;
+}
+
+.user_tools {
+    color: black;
+    font-size: medium;
+    font-weight: bold;
+    font-family: 'Fira Code';
+}
+
+.dev_tools {
+    color: green;
+    font-size: small;
+}
