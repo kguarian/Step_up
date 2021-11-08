@@ -275,12 +275,8 @@ print(str(exit_code))
 #solution here:
 
 def solution(n):
-  n=int(n)
-  sum=0
-  #unoptimized
-  for i in range(n+1):
-    sum+=i
-  return sum
+  #unoptimized, fails on negativee case but that should be invalid anyways.
+  return float(n*(n+1))/float(2)
       </textarea>
 
       <input type="button" id="btn_submit_code" onclick="runCode()" value="Run!" disabled="true">
